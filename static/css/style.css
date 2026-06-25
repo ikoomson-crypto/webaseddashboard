@@ -1,0 +1,4 @@
+.card { margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 10px; }
+.navbar-brand { font-weight: bold; font-size: 1.5rem; }
+.btn { border-radius: 5px; padding: 8px 20px; }
+.card:hover { transform: translateY(-2px); transition: transform 0.2s; }

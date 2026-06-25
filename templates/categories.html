@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h2><i class="fas fa-tags"></i> Manage Categories</h2>
+                <p>Add the categories that exist in your data</p>
+                <small><i class="fas fa-info-circle"></i> Create the categories you use in your data file</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="fas fa-plus-circle"></i> Add Category</h5>
+                <form id="addCategoryForm">
+                    <div class="mb-3">
+                        <label>Category Name</label>
+                        <input type="text" class="form-control" id="categoryName" required placeholder="e.g., Sales, Cost of Sales, Expenses">
+                        <small class="text-muted">This must exactly match the Category column in your data</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save"></i> Add Category
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="fas fa-list"></i> Your Categories</h5>
+                {% if categories %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in categories %}
+                            <tr>
+                                <td><strong>{{ cat }}</strong></td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteCategory('{{ cat }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>No categories created yet!</strong><br>
+                    Add your categories above.
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Based on your data, add these categories:</strong><br>
+                    <ul class="list-unstyled">
+                        <li>• Sales</li>
+                        <li>• Cost of Sales</li>
+                        <li>• Expenses</li>
+                        <li>• Non-Current Assets</li>
+                        <li>• Current Assets</li>
+                        <li>• Current Liabilities</li>
+                        <li>• Owners Equity</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$('#addCategoryForm').on('submit', function(e) {
+    e.preventDefault();
+
+    const data = {
+        category_name: $('#categoryName').val()
+    };
+
+    $.ajax({
+        url: '/api/categories/add',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        }
+    });
+});
+
+function deleteCategory(categoryName) {
+    if (confirm('Are you sure you want to delete this category?')) {
+        $.ajax({
+            url: '/api/categories/delete/' + encodeURIComponent(categoryName),
+            type: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

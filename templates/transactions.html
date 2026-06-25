@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h2><i class="fas fa-list"></i> Transactions Management</h2>
+                <p>Upload, view, and manage all your financial transactions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="fas fa-upload"></i> Upload Data</h5>
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #007bff;"></i>
+                    <h5 class="mt-3">Drop your file here or click to browse</h5>
+                    <p class="text-muted">Supports Excel (.xlsx) or CSV files</p>
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <input type="file" class="form-control" id="dataFile" name="file" accept=".xlsx,.csv" style="display:none;">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('dataFile').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                        <button type="submit" class="btn btn-success" id="uploadBtn">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> Download Template
+                        </button>
+                    </form>
+                    <div id="uploadProgress" style="display:none;" class="mt-3">
+                        <div class="spinner-border text-primary"></div>
+                        <p>Processing...</p>
+                    </div>
+                    <div id="uploadError" style="display:none;" class="alert alert-danger mt-3"></div>
+                    <div id="uploadSuccess" style="display:none;" class="alert alert-success mt-3"></div>
+                </div>
+                <div class="mt-3">
+                    <h6>Required columns:</h6>
+                    <div class="row mt-2">
+                        <div class="col-auto"><span class="badge bg-info">Account Name</span></div>
+                        <div class="col-auto"><span class="badge bg-info">Category</span></div>
+                        <div class="col-auto"><span class="badge bg-info">Date</span></div>
+                        <div class="col-auto"><span class="badge bg-info">Entity</span></div>
+                        <div class="col-auto"><span class="badge bg-info">Amount</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+{% if not transactions %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-inbox" style="font-size: 48px; color: #6c757d;"></i>
+                <h4 class="mt-3">No Transactions Found</h4>
+                <p class="text-muted">Upload data using the form above to see transactions here</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5><i class="fas fa-database"></i> All Transactions</h5>
+                        <span class="badge bg-primary">{{ transactions|length }} records</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" id="deleteSelectedBtn" style="display:none;" onclick="deleteSelected()">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="selectAll()">
+                            <i class="fas fa-check-double"></i> Select All
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="deselectAll()">
+                            <i class="fas fa-times"></i> Deselect All
+                        </button>
+                        <button class="btn btn-success" onclick="exportExcel()">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn btn-info" onclick="exportCSV()">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover table-striped" id="transactionsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                </th>
+                                <th>#</th>
+                                <th>Account Name</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th>Entity</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr id="row-{{ loop.index0 }}">
+                                <td>
+                                    <input type="checkbox" class="row-checkbox" value="{{ loop.index0 }}" onchange="updateDeleteButton()">
+                                </td>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ transaction.get('account_name', '') }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.get('category') == 'Sales' %}bg-success{% elif transaction.get('category') == 'Cost of Sales' or transaction.get('category') == 'Expenses' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ transaction.get('category', '') }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.get('date', '') }}</td>
+                                <td>{{ transaction.get('entity', '') }}</td>
+                                <td class="text-end {% if transaction.get('amount', 0) > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ '{:,.2f}'.format(transaction.get('amount', 0)) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <span id="deleteCount">0</span> transaction(s)?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Track selected rows
+var selectedRows = [];
+
+function updateDeleteButton() {
+    selectedRows = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(function(cb) {
+        selectedRows.push(parseInt(cb.value));
+    });
+
+    var btn = document.getElementById('deleteSelectedBtn');
+    if (selectedRows.length > 0) {
+        btn.style.display = 'inline-block';
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected (' + selectedRows.length + ')';
+    } else {
+        btn.style.display = 'none';
+    }
+
+    // Update select all checkbox
+    var allCheckboxes = document.querySelectorAll('.row-checkbox');
+    var checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    var selectAll = document.getElementById('selectAllCheckbox');
+    if (selectAll) {
+        selectAll.checked = allCheckboxes.length === checkedCheckboxes.length && allCheckboxes.length > 0;
+    }
+}
+
+function toggleSelectAll() {
+    var checked = document.getElementById('selectAllCheckbox').checked;
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateDeleteButton();
+}
+
+function selectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.checked = true;
+    });
+    updateDeleteButton();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateDeleteButton();
+}
+
+function deleteSelected() {
+    if (selectedRows.length === 0) return;
+
+    document.getElementById('deleteCount').textContent = selectedRows.length;
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (selectedRows.length === 0) return;
+
+    $.ajax({
+        url: '/api/transactions/delete',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ indices: selectedRows }),
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('Error deleting transactions');
+        }
+    });
+});
+
+// Upload functionality
+$('#uploadForm').on('submit', function(e) {
+    e.preventDefault();
+    var formData = new FormData();
+    var file = $('#dataFile')[0].files[0];
+    if (!file) {
+        $('#uploadError').show().html('Please select a file first');
+        return;
+    }
+    formData.append('file', file);
+    $('#uploadProgress').show();
+    $('#uploadError').hide();
+    $('#uploadSuccess').hide();
+
+    $.ajax({
+        url: '/upload',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            $('#uploadProgress').hide();
+            if (response.success) {
+                $('#uploadSuccess').show().html('✅ ' + response.message);
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                $('#uploadError').show().html('❌ ' + response.message);
+            }
+        },
+        error: function() {
+            $('#uploadProgress').hide();
+            $('#uploadError').show().html('❌ Error uploading file. Please try again.');
+        }
+    });
+});
+
+// File input change - show filename
+$('#dataFile').on('change', function() {
+    var fileName = $(this).val().split('\\').pop();
+    if (fileName) {
+        $('#uploadBtn').html('<i class="fas fa-upload"></i> Upload ' + fileName);
+    }
+});
+
+// Download functions
+function downloadTemplate() { window.location.href = '/api/download-template'; }
+function exportExcel() { window.location.href = '/api/export-excel'; }
+function exportCSV() { window.location.href = '/api/export-data'; }
+
+// Initialize
+updateDeleteButton();
+</script>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h2><i class="fas fa-chart-line"></i> Financial Performance Dashboard</h2>
+                <p>View your financial analytics and insights</p>
+                <small><i class="fas fa-info-circle"></i> Upload transactions from the Transactions page</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not has_data %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-inbox" style="font-size: 48px; color: #6c757d;"></i>
+                <h4 class="mt-3">No Data Available</h4>
+                <p class="text-muted">Upload your financial data from the Transactions page</p>
+                <a href="/transactions" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Go to Transactions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-database"></i> Data loaded successfully! 
+            <span class="badge bg-primary">{{ data|length }} transactions</span>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body kpi-card">
+                <h6 class="text-muted">Total Revenue</h6>
+                <div class="kpi-value text-success" id="totalRevenue">$0</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body kpi-card">
+                <h6 class="text-muted">Total Expenses</h6>
+                <div class="kpi-value text-danger" id="totalExpenses">$0</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body kpi-card">
+                <h6 class="text-muted">Net Income</h6>
+                <div class="kpi-value" id="netIncome">$0</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body kpi-card">
+                <h6 class="text-muted">Profit Margin</h6>
+                <div class="kpi-value" id="profitMargin">0%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5>Revenue & Expense Trends</h5>
+                <div id="trendChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Category Distribution</h5>
+                <div id="categoryChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5>Insights & Recommendations</h5>
+                <div id="insightsContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+{% if has_data %}
+$.ajax({ url: '/api/kpis', success: function(data) {
+    $('#totalRevenue').text('$' + (data.revenue || 0).toLocaleString());
+    $('#totalExpenses').text('$' + (data.expenses || 0).toLocaleString());
+    $('#netIncome').text('$' + (data.net_income || 0).toLocaleString());
+    $('#profitMargin').text((data.profit_margin || 0).toFixed(1) + '%');
+} });
+
+$.ajax({ url: '/api/trends', success: function(data) {
+    if (data.revenue_trend && data.revenue_trend.length > 0) {
+        var revenueTrace = { x: data.revenue_trend.map(d => d.date), y: data.revenue_trend.map(d => d.amount), mode: 'lines+markers', name: 'Revenue', line: { color: '#28a745', width: 3 } };
+        var expenseTrace = { x: data.expense_trend.map(d => d.date), y: data.expense_trend.map(d => d.amount), mode: 'lines+markers', name: 'Expenses', line: { color: '#dc3545', width: 3 } };
+        Plotly.newPlot('trendChart', [revenueTrace, expenseTrace], { height: 400 });
+    }
+} });
+
+$.ajax({ url: '/api/category-distribution', success: function(data) {
+    if (Object.keys(data).length > 0) {
+        Plotly.newPlot('categoryChart', [{ labels: Object.keys(data), values: Object.values(data), type: 'pie', hole: 0.3 }], { height: 400 });
+    }
+} });
+
+$.ajax({ url: '/api/insights', success: function(data) {
+    if(data && data.length > 0) {
+        var html = '<div class="row">';
+        data.forEach(function(insight) {
+            var bgClass = insight.type === 'critical' ? 'bg-danger text-white' : insight.type === 'warning' ? 'bg-warning' : insight.type === 'success' ? 'bg-success text-white' : 'bg-info text-white';
+            html += '<div class="col-md-6 mb-3"><div class="card ' + bgClass + '"><div class="card-body"><h6>' + insight.title + '</h6><p>' + insight.message + '</p><small><strong>Action:</strong> ' + insight.action + '</small></div></div></div>';
+        });
+        html += '</div>';
+        $('#insightsContainer').html(html);
+    }
+} });
+{% endif %}
+</script>
+{% endblock %}
